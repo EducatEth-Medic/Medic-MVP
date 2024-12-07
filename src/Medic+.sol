@@ -29,7 +29,7 @@ contract MedicPlusManager is Ownable, AccessControl {
         bool temporaryAccess;//Acceso temporal
         uint256 expiration;//Fecha de expiración del permiso temporal(en timestamp)
         // mapping(Permission => SpecificPermission) specificPermissions;//Permisos especificos para ciertos casos
-        uint256 caseId; //ID del caso específico al que se aplica el permiso. Es 0 si no hay case especifico
+        // uint256 caseId; //ID del caso específico al que se aplica el permiso. Es 0 si no hay case especifico
     }    
 
     struct FullPermission {
@@ -51,9 +51,10 @@ contract MedicPlusManager is Ownable, AccessControl {
     mapping(address => mapping(address => FullPermission)) private fullPermissions;//Doctor => (Paciente => Permiso General)
 
     event CaseUploaded(uint256 caseId, string cid, string name, address patient, string issueDate);
-    event FullPermissionGranted(address sender, address recipient);
-    event CasePermissionGranted(address sender, address recipient, uint256 caseId);
-    event FullPermissionRevoqued(address sender, address recipient);
+    event FullPermissionGranted(address patient, address recipient);
+    event CasePermissionGranted(address patient, address recipient, uint256 caseId);
+    event FullPermissionRevoqued(address patient, address recipient);
+    event CasePermissionRevoqued(address patient, address recipient, uint256 caseId);
     constructor() Ownable(msg.sender){
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -119,6 +120,36 @@ contract MedicPlusManager is Ownable, AccessControl {
         // }
         emit FullPermissionRevoqued(msg.sender,_recipient);
     }
+    function revokeCasePermission(address _recipient, uint256 _caseId) external {
+        require(_caseId > 0, "Invalid caseId. Must be greater than 0");
+        require(_recipient != address(0), "Invalid recipient address");
+        require(specificPermissions[_recipient][msg.sender][_caseId].hasAccess, "Recipient does not have permission");
 
+        delete specificPermissions[_recipient][msg.sender][_caseId];
+        emit CasePermissionRevoqued(msg.sender,_recipient,_caseId);    
+    }
 
+    function hasAccess(address _patient,address _recipient, uint256 _caseId) external view returns (bool) {
+        FullPermission fullPermission = fullPermissions[_recipient][patient];
+        SpecificPermission specificPermission = specificPermissions[_recipient][patient][_caseId];
+
+        return fullPermission.fullAccess || fullPermission.temporaryAccess || (specificPermission.hasAccess || specificPermission.temporaryAccess);
+    }
+    function getAllCases(address _patient) external view returns (CaseFolder[] memory) {
+        return userCases[_patient];
+    }
+
+    function getCase(uint256 _caseId) external view returns (CaseFolder memory) {
+        require(cases[_id].exists, "Document does not exist");
+        return cases[_id];
+    }
+    function isFullPermission(address _patient) external view returns (bool) {
+        return fullPermissions[msg.sender][_patient].fullAccess;
+    }
+    function isCaseFullPermission(address _patient, uint256 _caseId) external view returns (bool) {
+        return specificPermissions[msg.sender][_patient][_caseId].expiration == 0;
+    }
+    function getSpecificPermissions(address patient) external view returns (SpecificPermission[] memory) {
+        return specificPermissions[patient];
+    }
 }
