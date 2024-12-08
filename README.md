@@ -10,6 +10,14 @@ Además, **Medic+** integra un innovador asistente de inteligencia artificial ca
 
 **Medic+** no solo empodera a los pacientes, sino que también establece un nuevo estándar en la gestión de información médica al combinar seguridad, accesibilidad e innovación tecnológica.
 
+## Alineado con los siguientes ODS
+
+### OBJETIVO 3 - Salud y bienestar
+
+### OBJETIVO 16 - Paz, justicia e instituciones sólidas
+
+![alt text](ODSsMedicPlus.png)
+
 ## Características principales
 
 - **Seguridad y control total:** Almacenamiento descentralizado en blockchain para prevenir manipulaciones o pérdidas de datos.
@@ -59,13 +67,22 @@ Además, **Medic+** integra un innovador asistente de inteligencia artificial ca
 
 ![alt text](Arquitectura-MedicPlus.jpeg)
 
-## Tecnologías utilizadas
+### Test
+
+- **Foundry Tests**: Medic+ cuenta con un archivo de prueba que cubre las funciones principales del contrato.
+
+![alt text](TestCoverage.PNG)
+
+- **Cobertura de Prueba**: El contrato inteligente ha sido probado exhaustivamente con más de un 85% de cobertura de línea. Esto asegura que las funcionalidades críticas han sido verificadas.
+
+### Tecnologías utilizadas
 
 - **Frontend:** React y Next.js usando Scaffold-Eth 2 para una experiencia fluida.
-- **Backend:** FastAPI con Python para la gestión de datos y comunicación con la blockchain.¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿???????????????
-- **Blockchain:** Smart contract desarrollado en Solidity con Foundry y desempleado en Arbitrum..
+- **Backend:** Node.js y Nest.js para la lógica del servidor, Ethers.js para interactuar con la blockchain y Swagger para la documentación de APIs.¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿???????????????
+- **Mobile:** Dart y Flutter para el desarrollo de la aplicacion móvil.
+- **Blockchain:** Smart contract desarrollado en Solidity con Foundry y desempleado en Arbitrum.
 - **Almacenamiento descentralizado:** IPFS para el almacenamiento seguro de datos médicos.
-- **IA:** Modelos de machine learning integrados para análisis avanzado de datos.¿¿¿¿¿¿¿¿¿¿¿¿¿¿????????????????
+- **IA:** En el futuro, Python y modelos de Machine Learning se integrarán para análisis avanzado de datos y funcionalidades inteligentes.
 
 ## Cómo contribuir
 
@@ -88,9 +105,15 @@ Además, **Medic+** integra un innovador asistente de inteligencia artificial ca
 
 ## Próximos pasos
 
-- Integrar un asistente de IA para consultas acerca de los diagnósticos.
-- Ampliar las funcionalidades del asistente de IA con análisis predictivo.
-- Integrar un sistema de video conferencia para comunicaciones entre paciente y doctor.
-- Mejorar la experiencia de usuario con interfaces más intuitivas.
-  Desarrollar una aplicación móvil para mejorar la accesibilidad.
-  ¿¿¿¿¿¿¿¿¿¿¿¿???????????????????
+- Mejorar la experiencia de usuario y la aplicación móvil para mejorar la accesibilidad.
+- Integrar el sistema de roles y gestion de cuentas en el contrato
+- Implementar un Orbit
+- Ampliar las funcionalidades del asistente de IA con análisis preventivo
+- Integrar un asistente de IA para consultas interactivas acerca de los diagnósticos
+- Integrar un chat interno de comunicación paciente-doctor
+- Integrar un sistema de video conferencia para comunicaciones entre paciente y doctor
+- Integrar la posibilidad de venta de datos o donación a cambio de estudios preventivos
+- Conectarse a aparatos de salud como smart watches o similares para monitoreo
+- Gestionar citas médicas y enviar recordatorios
+- Integrar transferencia de pagos por consulta de modo interno
+- Crear una variante que sirva para llevar medicina a lugares más desfavorecidos o apartados, y que ayude a organizar intervenciones de salud y a gestionar cuentas médicas personales. Posible también en desastres y emergencias.
