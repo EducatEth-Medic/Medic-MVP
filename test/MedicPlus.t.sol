@@ -5,33 +5,7 @@ import { Test, console, console2 } from "../lib/forge-std/src/Test.sol";
 import { MedicPlusManager } from "../src/MedicPlus.sol";
 
 contract MedicPlusManagerTest is Test {
-    // struct CaseFolder{
-    //     uint256 caseId;
-    //     uint256 issueDate;//Indica la fecha de alta
-    //     string cid;// Identificador único del archivo en IPFS
-    //     string name;
-    //     string description;
-    //     address patient;
-    //     bool exists;
-    // }
-//  struct Permission{//REVISAR
-//         bool fullAccess;// Acceso total a todos los documentos
-//         bool temporaryAccess;//Acceso temporal
-//         uint256 expiration;//Fecha de expiración del permiso temporal(en timestamp)
-//         // mapping(Permission => SpecificPermission) specificPermissions;//Permisos especificos para ciertos casos
-//         // uint256 caseId; //ID del caso específico al que se aplica el permiso. Es 0 si no hay case especifico
-//     }    
-
-    struct FullPermission {
-        bool fullAccess; // Acceso total a todos los documentos
-        bool temporaryAccess; // Acceso temporal
-        uint256 expiration; // Fecha de expiración del permiso temporal (en timestamp)
-    }
-    struct SpecificPermission {
-            // uint256 caseId; // ID del caso específico
-            bool hasAccess; // Indica si el permiso específico está otorgado
-            uint256 expiration; // Fecha de expiración del permiso específico (en timestamp). Si no la tiene, debe ser 0
-        }
+   
 
     event CaseUploaded(uint256 caseId, string cid, string name, address patient, uint256 issueDate);
     event FullPermissionGranted(address patient, address recipient);
@@ -112,23 +86,23 @@ contract MedicPlusManagerTest is Test {
         MedicPlusManager.CaseFolder memory case1_2 = medicplus.getCase(1);
         assertEq(case1_2.description, "Another description", "El CID no coincide");
         assertEq(case1_2.issueDate, editDate, "El CID no coincide");
-
-
-        // assertEq(case1.name, "Case1", "El nombre no coincide");
-        // assertEq(case1.description, "Some description", "La descripcion no coincide");
-        // assertEq(case1.patient, bob, "El paciente no coincide");
-        // assertEq(case1.issueDate, issueDate, "La fecha no coincide");
-        // assertTrue(case1.exists, "El caso deberia existir");
+        assertEq(case1_2.name, "Case2", "El nombre no coincide");
+        assertEq(case1_2.description, "Another description", "La descripcion no coincide");
+        assertEq(case1.patient, bob, "El paciente no coincide");
+        assertEq(case1.issueDate, issueDate, "La fecha no coincide");
+        assertTrue(case1.exists, "El caso deberia existir");
       }
     function testEditCaseFail() public {
             uint256 issueDate = block.timestamp;
             // Crear el caso  1
             medicplus.uploadCase("example-cid", "Case1", "Some description", bob, issueDate);
-            // Editar el caso 1
+            // Editar casos inexistentes
             vm.expectRevert("Case does not exist");
             medicplus.editCase(3, "example-cid-2", "", "");
-            vm.stopPrank();
-            vm.startPrank(bob);
+            vm.expectRevert("Case does not exist");
+            medicplus.editCase(4, "example-cid-2", "", "");
+            // vm.stopPrank();
+            // vm.startPrank(bob);
             // vm.expectRevert("Address not authorized");
             // medicplus.editCase(1, "example-cid-2", "", "");
     }
@@ -136,13 +110,12 @@ contract MedicPlusManagerTest is Test {
         vm.stopPrank();
         vm.startPrank(bob);
         // Permisos totales para el paciente bob
-        // medicplus.uploadCase("example-cid", "Case1", "Some description", bob, issueDate);
-
         vm.expectEmit();    
         emit FullPermissionGranted(bob, alice); 
         medicplus.grantFullPermission(bob, alice, 0);
         assertEq(medicplus.isFullPermissionActive(alice, bob, 0), true, "El permiso no se ha otorgado");
-        // Persisos totales temporales para el paciente carol
+        
+        // Permisos totales temporales para el paciente carol
         uint256 expiration = block.timestamp + 3600 * 24;//Permisos temporales de 1 dia
         vm.expectEmit();
         emit FullPermissionGranted(bob, carol);
@@ -152,34 +125,33 @@ contract MedicPlusManagerTest is Test {
       function testGrantFullPermissionFail() public {
         vm.stopPrank();
         vm.startPrank(bob);
-        // Establece un timestamp específico
-        vm.warp(1000000);
         // // Establecer un timestamp en el pasado
         // vm.warp(block.timestamp - 10 seconds);
-        uint256 expirationfail = block.timestamp - 10 seconds;
-
         // // Avanzar el tiempo al presente
         // vm.warp(block.timestamp + 1 days);
+
+        // Establece un timestamp específico
+        vm.warp(1000000);
+        uint256 expirationfail = block.timestamp - 10 seconds;
         vm.expectRevert("Expiration must be in the future");
         medicplus.grantFullPermission(bob, alice, expirationfail);
 
         vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
         medicplus.grantFullPermission(bob, address(0), 0);
+
         uint256 expiration = block.timestamp + 3600 * 24;//Permisos temporales de 1 dia
         vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
         medicplus.grantFullPermission(bob, address(0), expiration);
+
         // Permisos totales temporales para el paciente carol
         vm.stopPrank();
         vm.startPrank(carol);
         vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
         medicplus.grantFullPermission(bob, carol, 0);
+
         vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
         medicplus.grantFullPermission(bob, carol, expiration);
-
-        // uint256 expirationfail = block.timestamp - 24;//Permisos temporales de 1 dia
-        // vm.expectRevert("Expiration must be in the future");
-        // medicplus.grantFullPermission(carol, alice, expirationfail);
-      }
+}
       function testRevokeFullAccess() public {
         vm.stopPrank();
         vm.startPrank(bob);
@@ -238,9 +210,13 @@ contract MedicPlusManagerTest is Test {
         vm.startPrank(bob);
         medicplus.uploadCase("example-cid", "Case1", "Some description", bob, issueDate);
         medicplus.grantCasePermission(bob, alice, 1, 0);
+        // assertEq(MedicPlusManager.specificPermissions[alice][bob][1].hasAccess, true, "El permiso no se ha otorgado");//ES PRIVADO
+        assertEq(medicplus.isFullPermissionActive(alice, bob, 1), true, "El permiso no se ha otorgado");
         assertEq(medicplus.isFullPermissionActive(alice, bob, 1), true, "El permiso no se ha otorgado");
         uint256 expiration = block.timestamp + 3600 * 24;//Permisos temporales de 1 dia
         medicplus.grantCasePermission(bob, alice, 1, expiration);
+        // assertEq(MedicPlusManager.specificPermissions[alice][bob][1].expiration > block.timestamp, true, "El permiso no se ha otorgado");//ES PRIVADO
+        assertEq(medicplus.isFullPermissionActive(alice, bob, 1), true, "El permiso no se ha otorgado");
         assertEq(medicplus.isTemporaryPermissionActive(alice, bob, 1), true, "El permiso no se ha otorgado");
             
     }
@@ -256,7 +232,6 @@ contract MedicPlusManagerTest is Test {
         vm.expectRevert("Invalid caseId. Must be greater than 0");
         medicplus.grantCasePermission(bob, alice, 0, 0);
 
-        // vm.expectRevert("Invalid caseId. Must be greater than 0");
         vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
         medicplus.grantCasePermission(carol, alice, 1, 0);
         
@@ -275,12 +250,6 @@ contract MedicPlusManagerTest is Test {
         uint256 expirationfail = block.timestamp - 3600 * 24;
         vm.expectRevert("Expiration must be in the future");
         medicplus.grantCasePermission(bob, alice, 1, expirationfail);
-        
-        // medicplus.revokeFullPermission(carol);
-        // vm.stopPrank();
-        // vm.startPrank(carol);
-        // vm.expectRevert("Invalid recipient address");
-        // medicplus.revokeFullPermission(carol);
     }
     function testRevokeCasePermission() public{
         uint256 issueDate = block.timestamp;
@@ -325,13 +294,6 @@ contract MedicPlusManagerTest is Test {
         vm.startPrank(alice);
         vm.expectRevert("Invalid recipient address");
         medicplus.revokeCasePermission(alice, 1);
-        // uint256 expiration = block.timestamp + 3600 * 24;//Permisos temporales de 1 dia
-        // medicplus.grantCasePermission(bob, carol, 1, expiration);
-        // assertEq(medicplus.isTemporaryPermissionActive(alice, bob,1), true, "El permiso no se ha otorgado");
-        // vm.expectEmit();
-        // emit CasePermissionRevoqued(bob, alice, 1);
-        // medicplus.revokeCasePermission(alice, 1);
-        // assertEq(medicplus.isTemporaryPermissionActive(alice, bob, 1), false, "El permiso temporal no se ha revocado");
     }
     function testHassAccess() public{
         uint256 issueDate = block.timestamp;

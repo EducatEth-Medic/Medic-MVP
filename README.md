@@ -1,5 +1,7 @@
 # Descripción del proyecto
 
+![alt text](Medic+TuSaludEnTusManos.PNG)
+
 # Medic+
 
 **Medic+** es una solución descentralizada diseñada para transformar la gestión y el control de los historiales médicos personales. Basada en tecnología blockchain, garantiza la privacidad y seguridad de los datos, otorgando a los pacientes el control total sobre quién puede acceder a su información y en qué momento.
@@ -78,7 +80,7 @@ Además, **Medic+** integra un innovador asistente de inteligencia artificial ca
 ### Tecnologías utilizadas
 
 - **Frontend:** React y Next.js usando Scaffold-Eth 2 para una experiencia fluida.
-- **Backend:** Node.js y Nest.js para la lógica del servidor, Ethers.js para interactuar con la blockchain y Swagger para la documentación de APIs.¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿???????????????
+- **Backend:** Node.js y Nest.js para la lógica del servidor, Ethers.js para interactuar con la blockchain y Swagger para la documentación de APIs.
 - **Mobile:** Dart y Flutter para el desarrollo de la aplicacion móvil.
 - **Blockchain:** Smart contract desarrollado en Solidity con Foundry y desempleado en Arbitrum.
 - **Almacenamiento descentralizado:** IPFS para el almacenamiento seguro de datos médicos.
