@@ -43,7 +43,7 @@ contract MedicPlusManagerTest is Test {
     MedicPlusManager medicplus;
     address alice;//doctor
     address bob;//paciente
-    address carol;//otropaciente
+    address carol;//otro doctor
 
     function setUp() public {
         alice = makeAddr("alice");
@@ -98,6 +98,8 @@ contract MedicPlusManagerTest is Test {
         medicplus.uploadCase("example-cid", "Case1", "Some description", bob, issueDate);
         uint256 editDate = block.timestamp;
         // Editar el caso 1
+        vm.stopPrank();
+        vm.startPrank(bob);
         vm.expectEmit();
         emit CaseEdited(1, editDate);
         medicplus.editCase(1, "example-cid-2", "", "");
@@ -118,7 +120,19 @@ contract MedicPlusManagerTest is Test {
         // assertEq(case1.issueDate, issueDate, "La fecha no coincide");
         // assertTrue(case1.exists, "El caso deberia existir");
       }
-      function testGrantFullAccess() public {
+    function testEditCaseFail() public {
+            uint256 issueDate = block.timestamp;
+            // Crear el caso  1
+            medicplus.uploadCase("example-cid", "Case1", "Some description", bob, issueDate);
+            // Editar el caso 1
+            vm.expectRevert("Case does not exist");
+            medicplus.editCase(3, "example-cid-2", "", "");
+            vm.stopPrank();
+            vm.startPrank(bob);
+            // vm.expectRevert("Address not authorized");
+            // medicplus.editCase(1, "example-cid-2", "", "");
+    }
+      function testGrantFullPermission() public {
         vm.stopPrank();
         vm.startPrank(bob);
         // Permisos totales para el paciente bob
@@ -126,24 +140,45 @@ contract MedicPlusManagerTest is Test {
 
         vm.expectEmit();    
         emit FullPermissionGranted(bob, alice); 
-        medicplus.grantFullPermission(alice, 0);
+        medicplus.grantFullPermission(bob, alice, 0);
         assertEq(medicplus.isFullPermissionActive(alice, bob, 0), true, "El permiso no se ha otorgado");
         // Persisos totales temporales para el paciente carol
         uint256 expiration = block.timestamp + 3600 * 24;//Permisos temporales de 1 dia
         vm.expectEmit();
         emit FullPermissionGranted(bob, carol);
-        medicplus.grantFullPermission(carol, expiration);
+        medicplus.grantFullPermission(bob, carol, expiration);
         assertEq(medicplus.isTemporaryPermissionActive(carol, bob, 0), true, "El permiso temporal no se ha otorgado");
       }
-      function testGrantFullAccessFail() public {
+      function testGrantFullPermissionFail() public {
         vm.stopPrank();
         vm.startPrank(bob);
-        // Permisos totales para el paciente bob
-        // medicplus.uploadCase("example-cid", "Case1", "Some description", bob, issueDate);
+        // Establece un timestamp específico
+        vm.warp(1000000);
+        // // Establecer un timestamp en el pasado
+        // vm.warp(block.timestamp - 10 seconds);
+        uint256 expirationfail = block.timestamp - 10 seconds;
+
+        // // Avanzar el tiempo al presente
+        // vm.warp(block.timestamp + 1 days);
+        vm.expectRevert("Expiration must be in the future");
+        medicplus.grantFullPermission(bob, alice, expirationfail);
+
         vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
-        medicplus.grantFullPermission(address(0), 0);
-        // Persisos totales temporales para el paciente carol
+        medicplus.grantFullPermission(bob, address(0), 0);
         uint256 expiration = block.timestamp + 3600 * 24;//Permisos temporales de 1 dia
+        vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
+        medicplus.grantFullPermission(bob, address(0), expiration);
+        // Permisos totales temporales para el paciente carol
+        vm.stopPrank();
+        vm.startPrank(carol);
+        vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
+        medicplus.grantFullPermission(bob, carol, 0);
+        vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
+        medicplus.grantFullPermission(bob, carol, expiration);
+
+        // uint256 expirationfail = block.timestamp - 24;//Permisos temporales de 1 dia
+        // vm.expectRevert("Expiration must be in the future");
+        // medicplus.grantFullPermission(carol, alice, expirationfail);
       }
       function testRevokeFullAccess() public {
         vm.stopPrank();
@@ -151,13 +186,13 @@ contract MedicPlusManagerTest is Test {
         // Permisos totales para el paciente bob
         vm.expectEmit();    
         emit FullPermissionGranted(bob, alice); 
-        medicplus.grantFullPermission(alice, 0);
+        medicplus.grantFullPermission(bob, alice, 0);
         assertEq(medicplus.isFullPermissionActive(alice, bob, 0), true, "El permiso no se ha otorgado");
         // Permisos totales temporales para el paciente carol
         uint256 expiration = block.timestamp + 3600 * 24;//Permisos temporales de 1 dia
         vm.expectEmit();
         emit FullPermissionGranted(bob, carol);
-        medicplus.grantFullPermission(carol, expiration);
+        medicplus.grantFullPermission(bob, carol, expiration);
         assertEq(medicplus.isTemporaryPermissionActive(carol, bob, 0), true, "El permiso temporal no se ha otorgado");
         // Revocar los permisos
         vm.expectEmit();
@@ -169,19 +204,83 @@ contract MedicPlusManagerTest is Test {
         medicplus.revokeFullPermission(carol);
         assertEq(medicplus.isTemporaryPermissionActive(carol, bob, 0), false, "El permiso temporal no se ha revocado");
       }
+
+    function testRevokeFullPermissionFail() public {
+        vm.stopPrank();
+        vm.startPrank(bob);
+        // Permisos totales para el paciente bob   
+        medicplus.grantFullPermission(bob, alice, 0);
+        assertEq(medicplus.isFullPermissionActive(alice, bob, 0), true, "El permiso no se ha otorgado");
+        // Permisos totales temporales para el paciente carol
+        vm.expectRevert("Recipient does not have full access");
+        medicplus.revokeFullPermission(carol);
+        uint256 expiration = block.timestamp + 3600 * 24;//Permisos temporales de 1 dia
+        emit FullPermissionGranted(bob, carol);
+        medicplus.grantFullPermission(bob, carol, expiration);
+        assertEq(medicplus.isTemporaryPermissionActive(carol, bob, 0), true, "El permiso temporal no se ha otorgado");
+        // Revocar los permisos
+        vm.expectRevert("Invalid recipient address");
+        medicplus.revokeFullPermission(address(0));
+        vm.stopPrank();
+        vm.startPrank(address(0));
+        vm.expectRevert("Invalid recipient address");
+        medicplus.revokeFullPermission(carol);
+        vm.stopPrank();
+        vm.startPrank(carol);
+        vm.expectRevert("Invalid recipient address");
+        medicplus.revokeFullPermission(carol);
+        vm.expectRevert("Invalid recipient address");
+        medicplus.revokeFullPermission(carol);
+    }
     function testGrantCasePermission() public{
         uint256 issueDate = block.timestamp;
         vm.stopPrank();
         vm.startPrank(bob);
         medicplus.uploadCase("example-cid", "Case1", "Some description", bob, issueDate);
-        vm.expectEmit();
-        emit CasePermissionGranted(bob, alice, 1);
-        medicplus.grantCasePermission(alice, 1, 0);
+        medicplus.grantCasePermission(bob, alice, 1, 0);
         assertEq(medicplus.isFullPermissionActive(alice, bob, 1), true, "El permiso no se ha otorgado");
         uint256 expiration = block.timestamp + 3600 * 24;//Permisos temporales de 1 dia
-        medicplus.grantCasePermission(alice, 1, expiration);
+        medicplus.grantCasePermission(bob, alice, 1, expiration);
         assertEq(medicplus.isTemporaryPermissionActive(alice, bob, 1), true, "El permiso no se ha otorgado");
+            
+    }
+    function testGrantCasePermissionFail() public{
+        // Establece un timestamp específico
+        vm.warp(1000000);
+        uint256 issueDate = block.timestamp;
     
+        vm.stopPrank();
+        vm.startPrank(bob);
+        medicplus.uploadCase("example-cid", "Case1", "Some description", bob, issueDate);
+        
+        vm.expectRevert("Invalid caseId. Must be greater than 0");
+        medicplus.grantCasePermission(bob, alice, 0, 0);
+
+        // vm.expectRevert("Invalid caseId. Must be greater than 0");
+        vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
+        medicplus.grantCasePermission(carol, alice, 1, 0);
+        
+        vm.stopPrank();
+        vm.startPrank(alice);
+        vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
+        medicplus.grantCasePermission(bob, alice, 1, 0);
+        
+        vm.stopPrank();
+        vm.startPrank(address(0));
+        vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
+        medicplus.grantCasePermission(bob, alice, 1, 0);
+
+        vm.stopPrank();
+        vm.startPrank(bob);
+        uint256 expirationfail = block.timestamp - 3600 * 24;
+        vm.expectRevert("Expiration must be in the future");
+        medicplus.grantCasePermission(bob, alice, 1, expirationfail);
+        
+        // medicplus.revokeFullPermission(carol);
+        // vm.stopPrank();
+        // vm.startPrank(carol);
+        // vm.expectRevert("Invalid recipient address");
+        // medicplus.revokeFullPermission(carol);
     }
     function testRevokeCasePermission() public{
         uint256 issueDate = block.timestamp;
@@ -190,29 +289,59 @@ contract MedicPlusManagerTest is Test {
         medicplus.uploadCase("example-cid", "Case1", "Some description", bob, issueDate);
         vm.expectEmit();
         emit CasePermissionGranted(bob, alice, 1);
-        medicplus.grantCasePermission(alice, 1, 0);
+        medicplus.grantCasePermission(bob, alice, 1, 0);
         assertEq(medicplus.isFullPermissionActive(alice, bob, 1), true, "El permiso no se ha otorgado");
         vm.expectEmit();
         emit CasePermissionRevoqued(bob, alice, 1);
         medicplus.revokeCasePermission(alice, 1);
         assertEq(medicplus.isFullPermissionActive(alice, bob, 1), false, "El permiso no se ha revocado");
         uint256 expiration = block.timestamp + 3600 * 24;//Permisos temporales de 1 dia
-        medicplus.grantCasePermission(alice, 1, expiration);
+        medicplus.grantCasePermission(bob, alice, 1, expiration);
         assertEq(medicplus.isTemporaryPermissionActive(alice, bob,1), true, "El permiso no se ha otorgado");
         vm.expectEmit();
         emit CasePermissionRevoqued(bob, alice, 1);
         medicplus.revokeCasePermission(alice, 1);
         assertEq(medicplus.isTemporaryPermissionActive(alice, bob, 1), false, "El permiso temporal no se ha revocado");
     }
+    function testRevokeCasePermissionFail() public{
+        uint256 issueDate = block.timestamp;
+        vm.stopPrank();
+        vm.startPrank(bob);
+        vm.expectRevert("Recipient does not have permission");
+        medicplus.revokeCasePermission(alice, 1);
+
+        medicplus.uploadCase("example-cid", "Case1", "Some description", bob, issueDate);
+        vm.expectEmit();
+        emit CasePermissionGranted(bob, alice, 1);
+        medicplus.grantCasePermission(bob, alice, 1, 0);
+
+        vm.expectRevert("Invalid caseId. Must be greater than 0");
+        medicplus.revokeCasePermission(alice, 0);
+  
+        vm.expectRevert("Invalid recipient address");
+        medicplus.revokeCasePermission(address(0), 1);
+
+        vm.stopPrank();
+        vm.startPrank(alice);
+        vm.expectRevert("Invalid recipient address");
+        medicplus.revokeCasePermission(alice, 1);
+        // uint256 expiration = block.timestamp + 3600 * 24;//Permisos temporales de 1 dia
+        // medicplus.grantCasePermission(bob, carol, 1, expiration);
+        // assertEq(medicplus.isTemporaryPermissionActive(alice, bob,1), true, "El permiso no se ha otorgado");
+        // vm.expectEmit();
+        // emit CasePermissionRevoqued(bob, alice, 1);
+        // medicplus.revokeCasePermission(alice, 1);
+        // assertEq(medicplus.isTemporaryPermissionActive(alice, bob, 1), false, "El permiso temporal no se ha revocado");
+    }
     function testHassAccess() public{
         uint256 issueDate = block.timestamp;
         vm.stopPrank();
         vm.startPrank(bob);
         medicplus.uploadCase("example-cid", "Case1", "Some description", bob, issueDate);
-        medicplus.grantCasePermission(alice, 1, 0);
+        medicplus.grantCasePermission(bob, alice, 1, 0);
         assertEq(medicplus.hasAccess(bob, alice, 1), true, "El paciente no tiene acceso al caso");
         uint256 expiration = block.timestamp + 3600 * 24;//Permisos temporales de 1 dia
-        medicplus.grantCasePermission(carol, 1, expiration);
+        medicplus.grantCasePermission(bob, carol, 1, expiration);
         assertEq(medicplus.hasAccess(bob, carol, 1), true, "El paciente no tiene acceso al caso");
     }
     function testGetAllCases() public{

@@ -107,6 +107,7 @@ contract MedicPlusManager is Ownable, AccessControl {
      function editCase(uint256 _caseId, string calldata _cid, string calldata _name, string calldata _description) external {
         CaseFolder storage userCase = cases[_caseId];
         require(userCase.exists, "Case does not exist");
+        require(msg.sender == userCase.patient, "Address not authorized");
         uint256 editDate = block.timestamp;
         //QUIEN puede editar un caso? Rol?
         // require(userCase.patient == msg.sender, "Unauthorized");
@@ -144,40 +145,43 @@ contract MedicPlusManager is Ownable, AccessControl {
     * @notice Si se especifica una expiración, el permiso se considera temporal y se revocará automáticamente después de la fecha indicada.
     * @notice Si no se desea especificar una expiración, _expiration debe ser 0
     */
-    function grantFullPermission(address _recipient, uint256 _expiration) external {
+    function grantFullPermission(address _patient,address _recipient, uint256 _expiration) external {
         // require(_recipient != address(0), "Invalid recipient address");
-        if(_recipient == address(0)){
+        if(_recipient == address(0) || msg.sender == _recipient){
             revert NoValidAddress();
         }
-        fullPermissions[_recipient][msg.sender].fullAccess = true;
+        fullPermissions[_recipient][_patient].fullAccess = true;
 
         if(_expiration > 0){
             require(_expiration > block.timestamp, "Expiration must be in the future");
-            fullPermissions[_recipient][msg.sender].temporaryAccess = true;
-            fullPermissions[_recipient][msg.sender].expiration = _expiration;
+            fullPermissions[_recipient][_patient].temporaryAccess = true;
+            fullPermissions[_recipient][_patient].expiration = _expiration;
         }
-        emit FullPermissionGranted(msg.sender,_recipient);
+        emit FullPermissionGranted(_patient,_recipient);
         
     } 
     
     /**
     * @dev Concede permisos de acceso a documentos específicos a una dirección.
+    * @param _patient Usuario que entrega los permisos de acceso.
     * @param _recipient Dirección que recibe los permisos de acceso.
     * @param _caseId ID del caso al que se concede acceso.
     * @param _expiration Fecha de expiración del permiso (en timestamp).
     * @notice Si se especifica una expiración, el permiso para cada documento será temporal y se revocará automáticamente después de la fecha indicada.
     * @notice Si no se desea una fecha de una expiración, _expiration debe ser 0.
     */
-    function grantCasePermission(address _recipient, uint256 _caseId, uint256 _expiration) external {
+    function grantCasePermission(address _patient,address _recipient, uint256 _caseId, uint256 _expiration) external {
         require(_caseId > 0, "Invalid caseId. Must be greater than 0");
-        require(_recipient != address(0), "Invalid recipient address");
-
-        specificPermissions[_recipient][msg.sender][_caseId].hasAccess = true;
+        // require(_recipient != address(0) && _patient != address(0), "Invalid recipient address");
+        if(_recipient == address(0) || msg.sender == _recipient || _patient != msg.sender){
+            revert NoValidAddress();
+        }
+        specificPermissions[_recipient][_patient][_caseId].hasAccess = true;
         if(_expiration > 0){
             require(_expiration > block.timestamp, "Expiration must be in the future");
-            specificPermissions[_recipient][msg.sender][_caseId].expiration = _expiration;
+            specificPermissions[_recipient][_patient][_caseId].expiration = _expiration;
         }
-        emit CasePermissionGranted(msg.sender,_recipient,_caseId);
+        emit CasePermissionGranted(_patient,_recipient,_caseId);
     }
 
     /**
@@ -187,6 +191,7 @@ contract MedicPlusManager is Ownable, AccessControl {
     */
     function revokeFullPermission(address _recipient) external {
         require(_recipient != address(0), "Invalid recipient address");
+        require(msg.sender != address(0) && msg.sender != _recipient, "Invalid recipient address");
         require(fullPermissions[_recipient][msg.sender].fullAccess, "Recipient does not have full access");
         
         delete fullPermissions[_recipient][msg.sender].fullAccess;
@@ -206,7 +211,7 @@ contract MedicPlusManager is Ownable, AccessControl {
     */  
     function revokeCasePermission(address _recipient, uint256 _caseId) external {
         require(_caseId > 0, "Invalid caseId. Must be greater than 0");
-        require(_recipient != address(0), "Invalid recipient address");
+        require(_recipient != address(0) && msg.sender != _recipient, "Invalid recipient address");
         require(specificPermissions[_recipient][msg.sender][_caseId].hasAccess, "Recipient does not have permission");
 
         delete specificPermissions[_recipient][msg.sender][_caseId];
