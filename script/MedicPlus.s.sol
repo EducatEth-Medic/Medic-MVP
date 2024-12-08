@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Open software License 3.0(OSL-3.0)
 pragma solidity ^0.8.24;
 import {Script} from "lib/forge-std/src/Script.sol";
 import {console} from "lib/forge-std/src/Test.sol";
