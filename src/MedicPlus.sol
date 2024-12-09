@@ -172,6 +172,8 @@ contract MedicPlusManager is Ownable, AccessControl {
     */
     function grantCasePermission(address _patient,address _recipient, uint256 _caseId, uint256 _expiration) external {
         require(_caseId > 0, "Invalid caseId. Must be greater than 0");
+        require(cases[_caseId].exists, "Case does not exist");
+        require(_patient == cases[_caseId].patient, "Unauthorized");
         // require(_recipient != address(0) && _patient != address(0), "Invalid recipient address");
         if(_recipient == address(0) || msg.sender == _recipient || _patient != msg.sender){
             revert NoValidAddress();

@@ -232,14 +232,22 @@ contract MedicPlusManagerTest is Test {
         vm.expectRevert("Invalid caseId. Must be greater than 0");
         medicplus.grantCasePermission(bob, alice, 0, 0);
 
-        vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
+        vm.expectRevert("Case does not exist");
+        medicplus.grantCasePermission(bob, alice, 10, 0);
+
+        vm.expectRevert("Unauthorized");
         medicplus.grantCasePermission(carol, alice, 1, 0);
         
         vm.stopPrank();
         vm.startPrank(alice);
         vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
         medicplus.grantCasePermission(bob, alice, 1, 0);
-        
+
+        vm.stopPrank();
+        vm.startPrank(carol);
+        vm.expectRevert("Unauthorized");
+        medicplus.grantCasePermission(carol, alice, 1, 0);
+
         vm.stopPrank();
         vm.startPrank(address(0));
         vm.expectRevert(abi.encodeWithSignature("NoValidAddress()"));
