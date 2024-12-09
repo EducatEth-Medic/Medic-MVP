@@ -77,6 +77,11 @@ Además, **Medic+** integra un innovador asistente de inteligencia artificial ca
 
 - **Cobertura de Prueba**: El contrato inteligente ha sido probado exhaustivamente con más de un 85% de cobertura de línea. Esto asegura que las funcionalidades críticas han sido verificadas.
 
+### Despliegue en Arbitrum
+
+El contrato ha sido desplegado y verificado en Arbitrum Sepolia.
+Puede verse en Arbiscan: https://sepolia.arbiscan.io/address/0xbfDDB634B62e53dfcAB1791C34B69D4eFb60925D
+
 ### Tecnologías utilizadas
 
 - **Frontend:** React y Next.js usando Scaffold-Eth 2 para una experiencia fluida.
